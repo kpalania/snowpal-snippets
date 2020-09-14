@@ -1,42 +1,40 @@
 Restaurant.collection.aggregate(
     [
       {'$match':
-         {'_id': restaurant.id,
-          "linked_to_hotels.id": {"$in": [hotel.id]}}},
+         {'_id': restaurant.id}},
       {'$lookup': {
-        from: Location.collection_name.to_s,
+        from: Hotel.collection_name.to_s,
         "let": {"restaurantId": "$_id"},
         "pipeline": [
           {"$unwind": {path: "$linked_to_restaurants", preserveNullAndEmptyArrays: true}},
           {"$match": {"$expr": {"$eq": %w{$linked_to_restaurants.id $$restaurantId}}}}],
-        as: "locations"}},
-      {"$unwind": {path: "$locations", preserveNullAndEmptyArrays: true}},
-      {"$unwind": {path: "$locations.linked_to_hotels", preserveNullAndEmptyArrays: true}},
+        as: "hotels"}},
+      {"$unwind": {path: "hotels", preserveNullAndEmptyArrays: true}},
+      {"$unwind": {path: "hotels.linked_to_cities", preserveNullAndEmptyArrays: true}},
       {'$lookup': {
-        from: BaseHotel.collection_name.to_s,
-        "let": {"hotelId": "$locations.linked_to_hotels.id"},
+        from: City.collection_name.to_s,
+        "let": {"hotelId": "hotels.linked_to_hotels.id"},
         "pipeline": [
           {"$match": {
             "$expr": {
               "$and": [
                 {"$eq": %w{$_id $$hotelId}},
-                {"$eq": ["$creator.id", user_id]}
+                {"$eq": ["$city_name", city_name]}
               ]}}}],
-        as: "hotels"}},
-      {"$unwind": {path: "$hotels"}},
+        as: "cities"}},
+      {"$unwind": {path: "cities"}},
       {'$project': {
         _id: 0,
-        locationId: "$locations._id",
-        locationOfType: "$locations._type",
-        locationName: "$locations.location_name",
-        locationLinkedToHotelId: "$locations.linked_to_hotels.id",
+        hotelId: "$hotels._id",
+        hotelOfType: "$hotels._type",
+        hotelName: "$hotels.hotel_name",
         restaurantId: "$_id",
         restaurantOfType: "$_type",
         restaurantName: "$restaurant_name",
-        hotelId: "$hotels._id",
-        hotelType: "$hotels._type",
-        hotelName: "$hotels.hotel_name",
-        hotelLastModified: "$hotels.last_modified",
+        cityId: "$cities._id",
+        cityType: "$cities._type",
+        cityName: "$cities.city_name",
+        cityLastModified: "$cities.last_modified",
       }},
-      {"$sort": {hotelId: 1, locationId: 1, }}
+      {"$sort": {hotelId: 1, cityId: 1, }}
     ])
